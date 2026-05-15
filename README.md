@@ -106,7 +106,7 @@ In regulated environments (ISO 27001, NIS2), you will run into:
 
 Getting all three right from scratch takes a senior engineer a full day of debugging `403` errors and DNS timeouts.
 
-👉 **[Get the Enterprise AI RAG Blueprint →](https://woitzik-cloud.lemonsqueezy.com)**
+👉 **[Get the Enterprise AI RAG Blueprint →](https://woitzik-cloud.lemonsqueezy.com/checkout/buy/cd786faf-92b8-41c8-876e-c3a3fdf4f823)**
 Full VNet isolation, automated DNS, RBAC Identity Chaining — ISO 27001 and NIS2 compliant on day one.
 
 ---
