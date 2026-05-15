@@ -1,16 +1,27 @@
+# ==========================================
+# Input Variables
+# ==========================================
+
 variable "location" {
+  description = "Azure Region for all resources (e.g., westeurope)"
   type        = string
-  description = "Azure region where resources will be deployed."
   default     = "westeurope"
 }
 
-variable "environment" {
+variable "resource_group_name" {
+  description = "Name of the resource group"
   type        = string
-  description = "The environment name (e.g., dev, test, prod)."
+  default     = "rg-rag-automation-demo"
 }
 
-variable "tags" {
-  type        = map(string)
-  description = "Standard tags to apply to all resources."
-  default     = {}
+variable "openai_account_name" {
+  description = "Globally unique name for the Azure OpenAI Cognitive Services Account"
+  type        = string
+  default     = "oai-rag-demo-dw-1337"
+}
+
+variable "search_service_name" {
+  description = "Globally unique name for the Azure AI Search Service"
+  type        = string
+  default     = "srch-rag-demo-dw-1337"
 }
