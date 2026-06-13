@@ -94,6 +94,14 @@ This template demonstrates the AzAPI auto-approval mechanism. **Do not deploy th
 
 ---
 
+## 📖 Deep Dive
+
+Read the full technical breakdown — AzAPI state machine, Identity Chaining, and Private DNS automation explained step by step:
+
+**[Automating Azure OpenAI RAG with Zero-Trust Networking →](https://woitzik.dev/blog/azure-rag-shared-private-link-automation)**
+
+---
+
 ## 🔒 Need a Production-Ready Zero-Trust AI Architecture?
 
 If you are building an AI assistant for enterprise clients, you cannot expose vector databases or OpenAI endpoints to the public internet, and you cannot rely on access keys.
