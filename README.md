@@ -1,5 +1,7 @@
 # Azure AI Search & OpenAI: Automated Shared Private Link (RAG Base)
 
+[![CI](https://github.com/dwoitzik/azure-openai-rag-network/actions/workflows/tf-linter.yml/badge.svg)](https://github.com/dwoitzik/azure-openai-rag-network/actions/workflows/tf-linter.yml)
+
 A minimal, targeted Infrastructure as Code (IaC) template demonstrating how to automate the creation and approval of Shared Private Links between Azure AI Search and Azure OpenAI — **completely eliminating the manual approval bottleneck** that breaks CI/CD pipelines.
 
 When building Retrieval-Augmented Generation (RAG) architectures, the native `azurerm` Terraform provider leaves Shared Private Links in a "Pending" state, forcing manual approval in the Azure Portal. This repository provides the clean, functional workaround using the `azapi` provider to programmatically force approval within the same Terraform run.
