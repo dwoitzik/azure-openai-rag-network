@@ -12,6 +12,9 @@ resource "azurerm_resource_group" "rg" {
 # ==========================================
 
 resource "azurerm_cognitive_account" "openai" {
+  #checkov:skip=CKV_AZURE_134: Private Endpoint VNet isolation with Private DNS Zones is included in the Enterprise Edition — woitzik.dev/templates
+  #checkov:skip=CKV_AZURE_247: DLP for Cognitive Services requires Microsoft Defender for Cloud — enable at the subscription level separately.
+  #checkov:skip=CKV2_AZURE_22: Customer-Managed Key encryption is out of scope for this base module.
   name                = var.openai_account_name
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -21,15 +24,26 @@ resource "azurerm_cognitive_account" "openai" {
   # Enforce Entra ID authentication for Zero-Trust compliance
   local_auth_enabled    = false
   custom_subdomain_name = var.openai_account_name
+
+  identity {
+    type = "SystemAssigned"
+  }
 }
 
 resource "azurerm_search_service" "search" {
+  #checkov:skip=CKV_AZURE_124: Private Endpoint VNet isolation is included in the Enterprise Edition — woitzik.dev/templates
+  #checkov:skip=CKV_AZURE_208: Search replica count for index SLA (3+) increases cost — set replica_count in the Enterprise Edition as needed.
+  #checkov:skip=CKV_AZURE_209: Search replica count for query SLA (3+) increases cost — set replica_count in the Enterprise Edition as needed.
   name                = var.search_service_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   sku                 = "standard"
 
   local_authentication_enabled = false
+
+  identity {
+    type = "SystemAssigned"
+  }
 }
 
 # ==========================================
