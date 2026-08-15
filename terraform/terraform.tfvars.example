@@ -1,9 +1,11 @@
 # ==========================================
-# Example Configuration
-# Copy this to 'terraform.tfvars' and adjust
+# Environment Configuration
 # ==========================================
 
 location            = "westeurope"
-resource_group_name = "rg-rag-automation-demo"
-openai_account_name = "oai-enterprise-rag-1337"
-search_service_name = "srch-enterprise-rag-1337"
+resource_group_name = "rg-rag-blueprint"
+
+# MUST BE GLOBALLY UNIQUE
+openai_account_name  = "oai-rag-prod-001"
+search_service_name  = "srch-rag-prod-001"
+search_replica_count = 3

@@ -1,5 +1,5 @@
 # ==========================================
-# Base Infrastructure
+# 1. Base Infrastructure & Networking
 # ==========================================
 
 resource "azurerm_resource_group" "rg" {
@@ -7,87 +7,161 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet-enterprise-rag"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "endpoints" {
+  name                 = "snet-private-endpoints"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_network_security_group" "endpoints_nsg" {
+  name                = "nsg-rag-endpoints"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "deny-inbound-internet"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "endpoints_nsg" {
+  subnet_id                 = azurerm_subnet.endpoints.id
+  network_security_group_id = azurerm_network_security_group.endpoints_nsg.id
+}
+
 # ==========================================
-# Cognitive Services & AI Search
+# 2. Private DNS Zones
+# ==========================================
+
+resource "azurerm_private_dns_zone" "openai_dns" {
+  name                = "privatelink.openai.azure.com"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_private_dns_zone" "search_dns" {
+  name                = "privatelink.search.windows.net"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "openai_vnet_link" {
+  name                  = "link-openai-vnet"
+  resource_group_name   = azurerm_resource_group.rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.openai_dns.name
+  virtual_network_id    = azurerm_virtual_network.vnet.id
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "search_vnet_link" {
+  name                  = "link-search-vnet"
+  resource_group_name   = azurerm_resource_group.rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.search_dns.name
+  virtual_network_id    = azurerm_virtual_network.vnet.id
+}
+
+# ==========================================
+# 3. Azure OpenAI (Zero-Trust, VNet-isolated)
 # ==========================================
 
 resource "azurerm_cognitive_account" "openai" {
-  #checkov:skip=CKV_AZURE_134: Private Endpoint VNet isolation with Private DNS Zones is included in the Enterprise Edition — woitzik.dev/templates
   #checkov:skip=CKV_AZURE_247: DLP for Cognitive Services requires Microsoft Defender for Cloud — enable at the subscription level separately.
-  #checkov:skip=CKV2_AZURE_22: Customer-Managed Key encryption is out of scope for this base module.
-  name                = var.openai_account_name
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  kind                = "OpenAI"
-  sku_name            = "S0"
-
-  # Enforce Entra ID authentication for Zero-Trust compliance
-  local_auth_enabled    = false
+  #checkov:skip=CKV2_AZURE_22: Customer-Managed Key for Cognitive Services requires a dedicated Key Vault and HSM — out of scope for this network layer module.
+  name                  = var.openai_account_name
+  location              = azurerm_resource_group.rg.location
+  resource_group_name   = azurerm_resource_group.rg.name
+  kind                  = "OpenAI"
+  sku_name              = "S0"
   custom_subdomain_name = var.openai_account_name
+
+  # Zero-trust security controls
+  public_network_access_enabled = false
+  local_auth_enabled            = false
 
   identity {
     type = "SystemAssigned"
   }
 }
 
+resource "azurerm_private_endpoint" "pe_openai" {
+  name                = "pe-openai"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_id           = azurerm_subnet.endpoints.id
+
+  private_service_connection {
+    name                           = "psc-openai"
+    private_connection_resource_id = azurerm_cognitive_account.openai.id
+    is_manual_connection           = false
+    subresource_names              = ["account"]
+  }
+
+  private_dns_zone_group {
+    name                 = "dns-group-openai"
+    private_dns_zone_ids = [azurerm_private_dns_zone.openai_dns.id]
+  }
+}
+
+# ==========================================
+# 4. Azure AI Search (Zero-Trust, VNet-isolated)
+# ==========================================
+
 resource "azurerm_search_service" "search" {
-  #checkov:skip=CKV_AZURE_124: Private Endpoint VNet isolation is included in the Enterprise Edition — woitzik.dev/templates
-  #checkov:skip=CKV_AZURE_208: Search replica count for index SLA (3+) increases cost — set replica_count in the Enterprise Edition as needed.
-  #checkov:skip=CKV_AZURE_209: Search replica count for query SLA (3+) increases cost — set replica_count in the Enterprise Edition as needed.
   name                = var.search_service_name
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   sku                 = "standard"
+  replica_count       = var.search_replica_count
 
-  local_authentication_enabled = false
+  # Zero-trust security controls
+  public_network_access_enabled = false
+  local_authentication_enabled  = false
 
+  # Crucial: Enable System Assigned Managed Identity for RBAC
   identity {
     type = "SystemAssigned"
   }
 }
 
-# ==========================================
-# Shared Private Link Automation
-# ==========================================
+resource "azurerm_private_endpoint" "pe_search" {
+  name                = "pe-search"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_id           = azurerm_subnet.endpoints.id
 
-resource "azurerm_search_shared_private_link_service" "openai_link" {
-  name              = "rag-openai-link"
-  search_service_id = azurerm_search_service.search.id
+  private_service_connection {
+    name                           = "psc-search"
+    private_connection_resource_id = azurerm_search_service.search.id
+    is_manual_connection           = false
+    subresource_names              = ["searchService"]
+  }
 
-  subresource_name = "openai_account"
-
-  target_resource_id = azurerm_cognitive_account.openai.id
-  request_message    = "Auto-generated by Terraform"
+  private_dns_zone_group {
+    name                 = "dns-group-search"
+    private_dns_zone_ids = [azurerm_private_dns_zone.search_dns.id]
+  }
 }
 
 # ==========================================
-# THE MAGIC: AzAPI Auto-Approve Workaround
+# 5. Identity Chaining (RBAC Magic)
 # ==========================================
 
-# 1. We query the dynamically generated Private Endpoint Connection ID
-data "azapi_resource_list" "pe_connections" {
-  type                   = "Microsoft.CognitiveServices/accounts/privateEndpointConnections@2023-05-01"
-  parent_id              = azurerm_cognitive_account.openai.id
-  response_export_values = ["value"]
-
-  depends_on = [
-    azurerm_search_shared_private_link_service.openai_link
-  ]
-}
-
-# 2. We dynamically filter for the 'Pending' connection and approve it
-resource "azapi_update_resource" "approve_shared_link" {
-  type = "Microsoft.CognitiveServices/accounts/privateEndpointConnections@2023-05-01"
-
-  # Extracts the exact resource_id of the pending connection
-  resource_id = try([for conn in jsondecode(data.azapi_resource_list.pe_connections.output).value : conn.id if conn.properties.privateLinkServiceConnectionState.status == "Pending"][0], "")
-
-  body = jsonencode({
-    properties = {
-      privateLinkServiceConnectionState = {
-        status      = "Approved"
-        description = "Approved via Terraform AzAPI Pipeline"
-      }
-    }
-  })
+# Grants the AI Search instance permission to read data from OpenAI
+# without using API keys.
+resource "azurerm_role_assignment" "search_to_openai" {
+  scope                = azurerm_cognitive_account.openai.id
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = azurerm_search_service.search.identity[0].principal_id
 }
