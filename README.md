@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/dwoitzik/azure-openai-rag-network/actions/workflows/tf-linter.yml/badge.svg)](https://github.com/dwoitzik/azure-openai-rag-network/actions/workflows/tf-linter.yml)
 
+> **Status: v0.1.0 — pre-1.0.** CI runs `terraform fmt`, `validate`, and `tflint` on every push, but this has never been through `terraform plan`/`apply` against a real Azure subscription. That proves syntax, not that it works. Reaching 1.0 needs a real plan-and-apply pass, which needs the operator (an Azure subscription, credentials, and someone watching the apply).
+
 Infrastructure-as-Code for wiring up Azure AI Search and Azure OpenAI for Retrieval-Augmented Generation (RAG) workloads without exposing either service to the public internet or relying on API keys.
 
 Both services sit behind Private Endpoints on a dedicated subnet, with matching Private DNS zones linked to the VNet, and AI Search reaches OpenAI via a System-Assigned Managed Identity with `Cognitive Services OpenAI User` RBAC — no shared keys, no manual Private Endpoint approval step, no public network access enabled anywhere in the path.
