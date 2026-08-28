@@ -1,6 +1,6 @@
 # Azure AI Search & OpenAI: Zero-Trust RAG Networking
 
-[![CI](https://github.com/dwoitzik/azure-openai-rag-network/actions/workflows/tf-linter.yml/badge.svg)](https://github.com/dwoitzik/azure-openai-rag-network/actions/workflows/tf-linter.yml)
+[![CI](https://github.com/dwoitzik/terraform-azurerm-openai-rag/actions/workflows/tf-linter.yml/badge.svg)](https://github.com/dwoitzik/terraform-azurerm-openai-rag/actions/workflows/tf-linter.yml)
 
 > **Status: v0.1.0 — pre-1.0.** CI runs `terraform fmt`, `validate`, and `tflint` on every push, but this has never been through `terraform plan`/`apply` against a real Azure subscription. That proves syntax, not that it works. Reaching 1.0 needs a real plan-and-apply pass, which needs the operator (an Azure subscription, credentials, and someone watching the apply).
 
@@ -42,8 +42,8 @@ Both services sit behind Private Endpoints on a dedicated subnet, with matching 
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/dwoitzik/azure-openai-rag-network.git
-cd azure-openai-rag-network/terraform
+git clone https://github.com/dwoitzik/terraform-azurerm-openai-rag.git
+cd terraform-azurerm-openai-rag/terraform
 ```
 
 **2. Configure your variables**
